@@ -5,7 +5,7 @@
  *
  * Let's play minecraft with Arduino Leonard + Wii nunchuck!
  * ------------------------------------------------------------------
- * THE SOFTWARE IS PROVIDED ÅgAS ISÅh, WITHOUT WARRANTY OF ANY KIND, 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
  * EXPRESS OR IMPLIED.
  * ------------------------------------------------------------------
  *
@@ -18,7 +18,7 @@
  *  <Mouse operation>
  *  Move        ... Wii Nunchuck roll & pitch
  *  Left click  ... Shake Wii Nunchuck
- *  Right click ... C (When C button is released) 
+ *  Right click ... C
  *  Mouse wheel ... C + Roll joystick
  *  
  *  <Get / Release Mouse & Keyboard> 
@@ -39,6 +39,7 @@ typedef boolean buttonState;
 #define SHAKE_SENSITIVITY           5
 #define THRESH_MOUSE_MOVE          16
 #define CONTROL_ON_OFF_SENSITIVITY 10 // x MAIN_LOOP_INTERVAL_MSEC is needed for on/off control
+#define C_BUTTON_PRESS_HOLD_SENSITIVITY 40 // x MAIN_LOOP_INTERVAL_MSEC is needed for firing C press event
 
 #define JOY_PRESS_THRESH_SOFT   30
 #define JOY_PRESS_THRESH_NORMAL 60
@@ -56,6 +57,7 @@ boolean joyPressSoft = false;
 
 int lastJoyPosForWheel = -1;
 int joyPosForWheel = -1;
+int cButtonFireCount = 0;
 
 int lpfAccelX = 0;
 int lpfAccelY = 0;
@@ -78,19 +80,20 @@ void setup()
 
 void onCbuttonPressed()
 {
+  Mouse.press(MOUSE_RIGHT);
   Serial.println("C pressed");
 }
 
 void onCbuttonReleased()
 {
   if (!skipCbuttonReleased) {
-    Mouse.press(MOUSE_RIGHT);
-    Mouse.release(MOUSE_RIGHT);
+    Mouse.click(MOUSE_RIGHT);
     Serial.println("C released");
   }
   else {
     skipCbuttonReleased = false;
   }
+  cButtonFireCount = 0;
 }
 
 void onZbuttonPressed()
@@ -115,9 +118,10 @@ void onCZbuttonsPressed()
   Keyboard.release('e');
   Serial.println("C and Z pressed");
   skipCbuttonReleased = true;
+  cButtonFireCount = 0;
 }
 
-void mouseEmulation()
+void fireAccelEvent()
 {
   static int shakeSensitivityCounter = 0;
   int mouseMoveStepLR = 0;
@@ -129,6 +133,7 @@ void mouseEmulation()
       Keyboard.press('q');
       Keyboard.release('q');
       skipCbuttonReleased = true;
+      cButtonFireCount = 0;
     }
     else {
       Mouse.press(MOUSE_LEFT);
@@ -151,14 +156,12 @@ void mouseEmulation()
       Mouse.move(mouseMoveStepLR, mouseMoveStepUD, 0);
     }
   }
-
-  // Mouse Wheel = Roll JoyStick
-  mouseWheelEmulation();
 }
 
 void mouseWheelEmulation()
 {
   // The direction of joystick correspond to the index number.
+  // The value is stored in global variable joyPosForWheel.
   // If last position is 0 and current position is 2,
   // wheelStepTable[0][2] = 2. It means wheeling mouse 2 steps.
   //
@@ -181,7 +184,13 @@ void mouseWheelEmulation()
   signed char wheelStep;
   if (chuck.isCbuttonPressed()) {
     if (joyPosForWheel != -1) {
+      // If mouse wheel starts with rolling joystick after long press of C,
+      // by the first, release mouse right by long press of C
+      if (Mouse.isPressed(MOUSE_RIGHT)) {
+        Mouse.release(MOUSE_RIGHT);
+      }
       skipCbuttonReleased = true;
+      cButtonFireCount = 0;
       if (lastJoyPosForWheel != -1) {
         wheelStep = wheelStepTable[lastJoyPosForWheel][joyPosForWheel];
         Mouse.move(0, 0, wheelStep);
@@ -361,8 +370,21 @@ void fireButtonEvent()
   zButton = (chuck.isZbuttonPressed() ? BUTTON_PRESSED : BUTTON_RELEASED);
 
   // fire event
+  // 
+  // Handling C button is tricky.
+  // C press event is fired when C is pressed long.
+  // That's because there are C-plus combination inputs
+  // such as C+Shake, C+Joystick, C+Z event.
   if (lastCbutton == BUTTON_RELEASED && cButton == BUTTON_PRESSED) {
-    onCbuttonPressed();
+    cButtonFireCount = C_BUTTON_PRESS_HOLD_SENSITIVITY;
+  }
+  else if (lastCbutton == BUTTON_PRESSED && cButton == BUTTON_PRESSED) {
+    if (cButtonFireCount > 0) {
+      cButtonFireCount--;
+      if (cButtonFireCount == 0) {
+        onCbuttonPressed();
+      }
+    }
   }
   if (lastCbutton == BUTTON_PRESSED && cButton == BUTTON_RELEASED) {
     onCbuttonReleased();
@@ -451,7 +473,9 @@ void fireJoystickEvent()
     }
   }
 
+  // Mouse wheel handling
   updateJoyPosForWheel();
+  mouseWheelEmulation();
 }
 
 
@@ -490,7 +514,7 @@ void loop()
     if (isInControl) {
       fireButtonEvent();
       fireJoystickEvent();
-      mouseEmulation();
+      fireAccelEvent();
     }
 
     lastAccelX = chuck.readAccelX();

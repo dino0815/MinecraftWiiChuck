@@ -7,7 +7,7 @@
  * http://playground.arduino.cc/Main/WiiChuckClass
  *
  * ------------------------------------------------------------------
- * THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, 
  * EXPRESS OR IMPLIED.
  * ------------------------------------------------------------------
  *

@@ -37,7 +37,7 @@ typedef boolean buttonState;
 #define MAIN_LOOP_INTERVAL_MSEC    30
 #define THRESH_SHAKE               50
 #define SHAKE_SENSITIVITY           5
-#define THRESH_MOUSE_MOVE          16
+#define THRESH_MOUSE_MOVE          10
 #define CONTROL_ON_OFF_SENSITIVITY 10 // x MAIN_LOOP_INTERVAL_MSEC is needed for on/off control
 #define C_BUTTON_PRESS_HOLD_SENSITIVITY 40 // x MAIN_LOOP_INTERVAL_MSEC is needed for firing C press event
 
@@ -150,9 +150,9 @@ void fireAccelEvent()
     // Change player's sight (Mouse move)
     if (!chuck.isZbuttonPressed() && shakeSensitivityCounter == 0) {
       mouseMoveStepLR = chuck.readRoll();
-      mouseMoveStepLR = (abs(mouseMoveStepLR) > THRESH_MOUSE_MOVE ? (mouseMoveStepLR >> 2) : 0);
+      mouseMoveStepLR = (abs(mouseMoveStepLR) > THRESH_MOUSE_MOVE ? (mouseMoveStepLR >> 1) : 0);
       mouseMoveStepUD = -(chuck.readPitch() - 90);  // Pitch 90 degrees = even with the ground
-      mouseMoveStepUD = (abs(mouseMoveStepUD) > THRESH_MOUSE_MOVE ? (mouseMoveStepUD >> 2) : 0);
+      mouseMoveStepUD = (abs(mouseMoveStepUD) > THRESH_MOUSE_MOVE ? (mouseMoveStepUD >> 1) : 0);
       Mouse.move(mouseMoveStepLR, mouseMoveStepUD, 0);
     }
   }
@@ -254,21 +254,9 @@ void updateJoyPosForWheel()
   } 
 }
 
-void onJoyPosNeutral()
+void onJoyPosNeutralUD()
 {
-  Serial.println("onJoyPosNeutral");
-  switch (lastJoyPosLR) {
-  case JOY_POS_LEFT:
-    Keyboard.release('a');
-    break;
-  case JOY_POS_RIGHT:
-    Keyboard.release('d');
-    break;
-  case JOY_POS_NEUTRAL:
-    break;
-  default:
-    ;
-  }
+  Serial.println("onJoyPosNeutralUD");
   switch (lastJoyPosUD) {
   case JOY_POS_UP:
     Keyboard.release('w');
@@ -281,7 +269,23 @@ void onJoyPosNeutral()
   default:
     ;
   }
+}
 
+void onJoyPosNeutralLR()
+{
+  Serial.println("onJoyPosNeutralLR");
+  switch (lastJoyPosLR) {
+  case JOY_POS_LEFT:
+    Keyboard.release('a');
+    break;
+  case JOY_POS_RIGHT:
+    Keyboard.release('d');
+    break;
+  case JOY_POS_NEUTRAL:
+    break;
+  default:
+    ;
+  }
 }
 
 void onJoyPosUp()
@@ -403,7 +407,6 @@ void fireButtonEvent()
 
 void fireJoystickEvent()
 {
-  boolean fireJoyPosNeutral = false;
   lastJoyPosUD = joyPosUD;
   lastJoyPosLR = joyPosLR;
 
@@ -433,7 +436,7 @@ void fireJoystickEvent()
     switch (joyPosUD) {
     case JOY_POS_NEUTRAL:
       if (joyPosUD != lastJoyPosUD) {
-        fireJoyPosNeutral = true;
+        onJoyPosNeutralUD();
       }
       break;
     case JOY_POS_UP:
@@ -452,7 +455,7 @@ void fireJoystickEvent()
     switch (joyPosLR) {
     case JOY_POS_NEUTRAL:
       if (joyPosLR != lastJoyPosLR) {
-        fireJoyPosNeutral = true;
+        onJoyPosNeutralLR();
       }
       break;
     case JOY_POS_LEFT:
@@ -467,9 +470,6 @@ void fireJoystickEvent()
       break;
     default:
       ;
-    }
-    if (fireJoyPosNeutral) {
-      onJoyPosNeutral();
     }
   }
 

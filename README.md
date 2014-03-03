@@ -22,3 +22,6 @@ Get / Release Mouse & Keyboard
 C + Z + Joystick down  
 (You need to do this operation first when this program is started.)  
 
+---------------------------------
+Own Note:
+*http://playground.arduino.cc/Main/WiiChuckClass

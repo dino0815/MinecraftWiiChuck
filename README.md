@@ -22,6 +22,10 @@ Get / Release Mouse & Keyboard
 C + Z + Joystick down  
 (You need to do this operation first when this program is started.)  
 
+
 ---------------------------------
-Own Note:
-*http://playground.arduino.cc/Main/WiiChuckClass
+
+Own Link Notes
+--------------
+* http://playground.arduino.cc/Main/WiiChuckClass
+* http://miznashbuzz.blogspot.de/2013/01/minecraft-with-wii-nunchuck.html
